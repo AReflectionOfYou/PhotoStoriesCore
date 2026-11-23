@@ -53,7 +53,8 @@ export async function exportBundle(fs: FileAdapter, projectRoot: string, outDir:
   const selection = docs.length < all.length;
 
   const date = now.toISOString().slice(0, 10);
-  let bagName = `${project.group.slug || slugPart(String(project.group.name)) || "photo-stories"}_${date}${selection ? `_${docs.length}-photos` : ""}`;
+  // "_archive" keeps the unzipped folder's name distinct from the project folder it came from.
+  let bagName = `${project.group.slug || slugPart(String(project.group.name)) || "photo-stories"}_${date}${selection ? `_${docs.length}-photos` : ""}_archive`;
   await fs.mkdir(outDir);
   for (let n = 2; (await fs.exists(join(outDir, bagName))) || (await fs.exists(join(outDir, `${bagName}.zip`))); n++) bagName = `${bagName.replace(/-\d+$/, "")}-${n}`;
   const bag = join(outDir, bagName);

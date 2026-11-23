@@ -85,9 +85,10 @@ test("export: only chosen photos, or every photo", async () => {
   const { boat, hills } = await sampleProject(fs, root);
   const one = await exportBundle(fs, root, join(dir, "out"), { photoIds: [boat.photo.id], now: NOW });
   assert.equal(one.counts.photos, 1);
-  assert.match(one.bagName, /_1-photos$/);
+  assert.match(one.bagName, /_1-photos_archive$/);
   const all = await exportBundle(fs, root, join(dir, "out"), { includeWithoutStory: true, now: NOW });
   assert.equal(all.counts.photos, 3);
+  assert.match(all.bagName, /_\d{4}-\d{2}-\d{2}_archive$/, "archives are named apart from the project folder");
   assert.ok(all.bagName !== one.bagName);
   void hills;
 });

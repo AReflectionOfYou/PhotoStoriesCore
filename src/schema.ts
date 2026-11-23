@@ -21,7 +21,7 @@ import type { Row } from "./util.ts";
 
 export const SCHEMA_VERSION = "2";
 export const KNOWN_SCHEMA_VERSIONS = ["1", "2"] as const;
-export const LIBRARY = { name: "photostories-core", version: "0.1.1" };
+export const LIBRARY = { name: "photostories-core", version: "0.1.2" };
 
 /** Data files at the top of a project or bundle payload. */
 export const TOP_FILES = ["group.json", "contributors.json", "people.json", "collections.json", "events.json", "consent.json", "usage.json"] as const;

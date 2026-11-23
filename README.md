@@ -8,7 +8,7 @@ Part of the [A Reflection of You](https://github.com/AReflectionOfYou) collectio
 
 ## Status
 
-Version 0.1.1. Schema version 2. Tested in Node; used by PhotoStoriesDesktop.
+Version 0.1.2. Schema version 2. Tested in Node; used by PhotoStoriesDesktop.
 
 ## What's inside
 
@@ -71,7 +71,7 @@ const plan = await planImport(fs, "/path/to/old-bundle.zip", "/path/to/project")
 const summary = await commitImport(fs, plan, { allDuplicates: "skip", names: { /* incoming person id -> existing id */ } });
 ```
 
-To use it from an app, pin a version: `"photostories-core": "github:AReflectionOfYou/PhotoStoriesCore#v0.1.1"`. The library and the schema have separate version numbers (`LIBRARY.version`, `SCHEMA_VERSION`); apps upgrade deliberately.
+To use it from an app, pin a version: `"photostories-core": "github:AReflectionOfYou/PhotoStoriesCore#v0.1.2"`. The library and the schema have separate version numbers (`LIBRARY.version`, `SCHEMA_VERSION`); apps upgrade deliberately.
 
 ## Development
 
