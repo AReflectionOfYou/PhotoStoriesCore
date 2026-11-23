@@ -7,7 +7,7 @@ import { exportBundle } from "../src/export.ts";
 import { commitImport, planImport } from "../src/import.ts";
 import { migrateBag } from "../src/migrate.ts";
 import { nearMatch, reviewNames } from "../src/names.ts";
-import { createProject, listPhotoIds, loadProject, readPhoto, saveProject, ensurePerson } from "../src/project.ts";
+import { createProject, listPhotoIds, loadProject, readPhoto, saveProject, ensurePerson, writePhoto } from "../src/project.ts";
 import { SCHEMA_VERSION, type PhotoDoc } from "../src/schema.ts";
 import { unzipTo, findBag } from "../src/zip.ts";
 import { NOW, sampleProject, tempAdapter, v1Bag } from "./helpers.ts";
@@ -298,4 +298,24 @@ test("import: photos from someone else's project keep their own creator and righ
   const doc = await readPhoto(fs, b, house.photo.id);
   assert.deepEqual(doc.dublin_core?.creator, ["Rose Example"]);
   assert.equal(doc.dublin_core?.rights, "CC BY 4.0");
+});
+
+test("export: a story recorded in parts plays every part in the archive page", async () => {
+  const { fs, dir } = await tempAdapter();
+  const root = join(dir, "p");
+  const { house } = await sampleProject(fs, root);
+  const story = house.contributions.find((c) => c.kind === "story")!;
+  const photoDir = join(root, "photos", String(house.photo.id));
+  await fs.mkdir(join(photoDir, "audio"));
+  const parts = [`audio/${story.id}-1.wav`, `audio/${story.id}-2.wav`];
+  for (const p of parts) await fs.writeFile(join(photoDir, p), new TextEncoder().encode(`RIFF fake ${p}`));
+  house.files.audio = { [String(story.id)]: { original: parts[0], parts } };
+  Object.assign(story, { audio_path: parts[0], audio_original_mime: "audio/wav" });
+  await writePhoto(fs, root, house, await loadProject(fs, root));
+  const r = await exportBundle(fs, root, join(dir, "out"), { now: NOW, keepFolder: true });
+  assert.deepEqual(r.problems, []);
+  for (const p of parts) assert.ok(await fs.exists(join(r.bagDir, "data", "photos", String(house.photo.id), p)), `${p} is in the archive`);
+  const html = await readText(fs, join(r.bagDir, "START HERE.html"));
+  for (const p of parts) assert.ok(html.includes(`data/photos/${house.photo.id}/${p}`), `the page plays ${p}`);
+  assert.ok(html.includes("Recording "), "parts are labeled");
 });

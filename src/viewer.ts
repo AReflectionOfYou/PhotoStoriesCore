@@ -56,7 +56,13 @@ export async function viewerData(fs: FileAdapter, bag: string) {
         words: storyWords(c),
         corrected: !c.story_text && !!c.transcript_edited_text,
         typed: c.typed_text ?? "",
-        audio: audio ? { flac: audio.archive ? base + audio.archive : "", original: audio.original ? base + audio.original : "", mime: c.audio_original_mime ?? "" } : null,
+        audio: audio ? {
+          flac: audio.archive ? base + audio.archive : "",
+          original: audio.original ? base + audio.original : "",
+          mime: c.audio_original_mime ?? "",
+          // "Record more" adds parts; every part is played, in the order recorded.
+          parts: Array.isArray(audio.parts) && audio.parts.length > 1 ? (audio.parts as string[]).map((p) => base + p) : [],
+        } : null,
       };
     });
     const liveFaces = ((doc.faces ?? []) as Row[]).filter((x) => !x.dismissed && (x.image ?? "front") === "front");
@@ -154,6 +160,7 @@ label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .story .answer { margin-left: 12px; border-left: 4px solid var(--line); padding-left: 12px; display: flex; flex-direction: column; gap: 6px; }
 audio { width: 100%; }
+.part { margin: 6px 0 2px; font-size: 0.85rem; }
 .words { white-space: pre-wrap; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; }
 a { color: var(--accent); }
@@ -305,7 +312,13 @@ footer a { color: inherit; }
   function storyBody(c) {
     var out = [el("p", {}, [el("b", { text: c.who }), el("span", { class: "muted", text: " \\u00b7 " + c.kind + " \\u00b7 " + day(c.date) })])];
     if (c.question) out.push(el("p", { class: "muted", text: "Answering: \\u201c" + c.question + "\\u201d" }));
-    if (c.audio) {
+    if (c.audio && c.audio.parts && c.audio.parts.length > 1) {
+      c.audio.parts.forEach(function (src, i) {
+        var part = el("audio", { controls: "", preload: "none", "aria-label": "Recording " + (i + 1) + " of " + c.audio.parts.length });
+        part.appendChild(el("source", { src: src, type: c.audio.mime || "" }));
+        out.push(el("p", { class: "muted part", text: "Recording " + (i + 1) + " of " + c.audio.parts.length }), part);
+      });
+    } else if (c.audio) {
       var a = el("audio", { controls: "", preload: "none" });
       if (c.audio.flac) a.appendChild(el("source", { src: c.audio.flac, type: "audio/flac" }));
       if (c.audio.original) a.appendChild(el("source", { src: c.audio.original, type: c.audio.mime || "" }));
