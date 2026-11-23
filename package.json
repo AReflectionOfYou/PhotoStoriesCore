@@ -1,0 +1,47 @@
+{
+  "name": "photostories-core",
+  "version": "0.1.0",
+  "description": "Shared storage, schema, migration, BagIt import/export and HTML viewer for every version of Photo Stories.",
+  "license": "MIT",
+  "type": "module",
+  "author": "Michael A. Heroux",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AReflectionOfYou/PhotoStoriesCore.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node-adapter.d.ts",
+      "default": "./dist/node-adapter.js"
+    },
+    "./schema/*": "./schema/*"
+  },
+  "files": [
+    "dist",
+    "schema",
+    "LICENSE",
+    "LICENSE-CONTENT"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "samples": "node scripts/make-samples.ts"
+  },
+  "dependencies": {
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "ajv": "8.17.1",
+    "typescript": "5.9.3"
+  }
+}

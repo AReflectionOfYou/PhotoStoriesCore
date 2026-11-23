@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AReflectionOfYou/PhotoStoriesCore/schema/photo.schema.json",
+  "title": "Photo Stories sidecar (photo.json)",
+  "description": "Everything recorded about one photo. Schema version 1 is the shared online app's bundle format; version 2 adds dublin_core, provenance, edits, and optional fields in details and contributions. Field names are stable: later versions add fields, never rename or remove them. Unknown fields must be kept, so every object allows additional properties.",
+  "type": "object",
+  "required": ["schema_version", "photo", "files"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+$", "description": "\"1\" or \"2\" today. Readers warn on versions newer than they know and read what they can." },
+    "photo": {
+      "type": "object",
+      "required": ["id", "original_sha256"],
+      "properties": {
+        "id": { "type": "string", "description": "Stable photo id (a UUID); also the folder name under photos/." },
+        "group_id": { "type": ["string", "null"], "description": "The project (\"group\") the photo belongs to." },
+        "collection_id": { "type": ["string", "null"] },
+        "event_id": { "type": ["string", "null"] },
+        "source_mode": { "enum": ["capture", "existing"] },
+        "original_path": { "type": ["string", "null"], "description": "Where the original was stored by the app that made it. Provenance only; read files.original instead." },
+        "original_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Checksum of the original file, used to find duplicates." },
+        "original_mime": { "type": ["string", "null"] },
+        "original_filename": { "type": ["string", "null"] },
+        "original_bytes": { "type": ["integer", "null"] },
+        "derived_path": { "type": ["string", "null"] },
+        "crop_params": { "type": ["object", "null"] },
+        "hidden": { "type": "boolean" },
+        "created_by": { "type": ["string", "null"], "description": "A contributor id." },
+        "created_at": { "type": "string" }
+      }
+    },
+    "details": {
+      "type": ["object", "null"],
+      "properties": {
+        "caption": { "type": ["string", "null"], "description": "The title. Maps to dc:title." },
+        "date_text": { "type": ["string", "null"], "description": "The date as said or typed." },
+        "date_edtf": { "type": ["string", "null"], "description": "The date in Library of Congress EDTF, e.g. 1965, 1965~, 196X, 1965-22." },
+        "date_certainty": { "$ref": "#/$defs/certainty" },
+        "place_text": { "type": ["string", "null"], "description": "Maps to dc:coverage." },
+        "place_certainty": { "$ref": "#/$defs/certainty" },
+        "event_text": { "type": ["string", "null"] },
+        "event_certainty": { "$ref": "#/$defs/certainty" },
+        "photographer_text": { "type": ["string", "null"] },
+        "photographer_certainty": { "$ref": "#/$defs/certainty" },
+        "original_location_text": { "type": ["string", "null"] },
+        "original_location_certainty": { "$ref": "#/$defs/certainty" },
+        "notes": { "type": ["string", "null"], "description": "Schema 2. Free-text notes." },
+        "latitude": { "type": ["number", "null"], "description": "Schema 2." },
+        "longitude": { "type": ["number", "null"], "description": "Schema 2." },
+        "creator": { "type": ["array", "string", "null"], "items": { "type": "string" }, "description": "Schema 2. Set when the photo came from another project, to keep its own dc:creator." },
+        "rights": { "type": ["string", "null"], "description": "Schema 2. Set when the photo came from another project, to keep its own dc:rights." }
+      }
+    },
+    "people_in_photo": { "type": "array", "items": { "type": "object", "required": ["person_id"] } },
+    "faces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "bbox_x", "bbox_y", "bbox_w", "bbox_h"],
+        "description": "A face box as fractions of image.jpg's width and height: top-left corner and size. A false detection is dismissed, never deleted.",
+        "properties": {
+          "bbox_x": { "type": "number", "minimum": 0, "maximum": 1 },
+          "bbox_y": { "type": "number", "minimum": 0, "maximum": 1 },
+          "bbox_w": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+          "bbox_h": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+          "image": { "enum": ["front", "back"] },
+          "person_id": { "type": ["string", "null"], "description": "Matches an id in people.json." },
+          "dismissed": { "type": "boolean" },
+          "detector": { "type": "string" }
+        }
+      }
+    },
+    "face_tag_history": { "type": "array", "items": { "type": "object" } },
+    "field_history": { "type": "array", "items": { "type": "object" } },
+    "contributions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "description": "A story, memory, comment or follow-up answer.",
+        "properties": {
+          "kind": { "enum": ["story", "followup_answer", "memory", "comment"] },
+          "contributor_id": { "type": ["string", "null"] },
+          "parent_id": { "type": ["string", "null"] },
+          "prompt_text": { "type": ["string", "null"] },
+          "transcript": { "type": ["string", "null"], "description": "The raw transcript, exactly as recognized." },
+          "transcript_model": { "type": ["string", "null"] },
+          "transcript_edited_text": { "type": ["string", "null"], "description": "The speaker's own corrections to the transcript." },
+          "typed_text": { "type": ["string", "null"] },
+          "story_text": { "type": ["string", "null"], "description": "Schema 2. The cleaned story, lightly polished from the speaker's own words and reviewed. Maps to dc:description." },
+          "story_cleanup": { "type": ["object", "null"], "description": "Schema 2. How the story was cleaned: {method: none|local|anthropic|openai, model}." },
+          "deleted_at": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "contribution_versions": { "type": "array", "items": { "type": "object" } },
+    "ai_extractions": { "type": "array", "items": { "type": "object" } },
+    "extraction_reviews": { "type": "array", "items": { "type": "object" } },
+    "files": {
+      "type": "object",
+      "description": "File names inside this photo's folder.",
+      "properties": {
+        "original": { "type": "string", "description": "The photo exactly as copied in or uploaded, never changed." },
+        "image": { "type": "string", "description": "The edited working copy (image.jpg), with XMP." },
+        "thumb": { "type": "string", "description": "Schema 2. A small preview (thumb.jpg)." },
+        "back_original": { "type": "string" },
+        "back_image": { "type": "string" },
+        "audio": { "type": "object", "additionalProperties": { "type": "object" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Schema 2. Where the copy came from, for provenance only.",
+      "properties": {
+        "source_filename": { "type": "string" },
+        "source_path": { "type": "string" },
+        "copied_at": { "type": "string" },
+        "copy_size": { "enum": ["full", "resized"] },
+        "max_long_edge": { "type": ["integer", "null"] },
+        "app": { "type": "object", "properties": { "name": { "type": "string" }, "version": { "type": "string" } } }
+      }
+    },
+    "edits": {
+      "type": "array",
+      "description": "Schema 2. A summary of edits to the working copy, in order.",
+      "items": { "type": "object", "required": ["at", "action"], "properties": { "at": { "type": "string" }, "action": { "type": "string" }, "params": { "type": "object" } } }
+    },
+    "dublin_core": {
+      "type": "object",
+      "description": "Schema 2. The Dublin Core description, computed from the fields above.",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "subject": { "type": "array", "items": { "type": "string" } },
+        "creator": { "type": "array", "items": { "type": "string" } },
+        "contributor": { "type": "array", "items": { "type": "string" } },
+        "coverage": { "type": "string" },
+        "date": { "type": "string" },
+        "source": { "type": "string" },
+        "rights": { "type": "string" },
+        "type": { "type": "string" },
+        "format": { "type": "string" },
+        "identifier": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "certainty": { "enum": ["sure", "likely", "guess", null], "description": "How sure the teller was: sure, likely (\"think so\"), or guess." }
+  }
+}
