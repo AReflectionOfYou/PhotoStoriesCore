@@ -56,7 +56,7 @@ test("metadata: reads EXIF description, date and orientation", async () => {
   const r = readEmbedded(jpeg);
   assert.equal(r.description, "Old description from the camera");
   assert.equal(r.sources.description, "EXIF");
-  assert.equal(r.date, "1999-07-04");
+  assert.equal(r.date, "1999-07-04T10:30:00");
   assert.equal(r.orientation, 6);
   assert.equal(r.title, undefined);
 });
@@ -69,6 +69,8 @@ test("metadata: fills what's missing, and flags what differs instead of overwrit
   assert.equal(values.description, "Camera text", "different: kept until the person decides");
   assert.deepEqual(values.people, ["Robert Example"]);
   assert.deepEqual(conflicts.map((c) => c.field), ["description"], "same date is not a conflict");
+  assert.equal(values.date, "1999-07-04T10:30:00", "the camera's more exact date and time is kept");
+  assert.deepEqual(planEmbedded(readEmbedded(jpeg), { date: "1999-07-05" }).conflicts.map((c) => c.field), ["date"], "a different day is a conflict");
   assert.equal(conflicts[0].embedded, "Camera text");
   assert.equal(conflicts[0].ours, "This is the house we grew up in.");
 });
@@ -93,7 +95,7 @@ test("metadata: writes XMP that reads back, carries EXIF over and sets it uprigh
   // The replaced EXIF description is cleared so other software doesn't show the old one.
   const exifOnly = readEmbedded(stripXmp(out));
   assert.equal(exifOnly.description, undefined);
-  assert.equal(exifOnly.date, "1999-07-04", "other EXIF is kept");
+  assert.equal(exifOnly.date, "1999-07-04T10:30:00", "other EXIF is kept");
   // The image data itself is unchanged.
   const tail = (b: Uint8Array) => b.subarray(segments(b).at(-1)!.end);
   assert.deepEqual(tail(out), tail(plain));

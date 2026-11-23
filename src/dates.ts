@@ -2,14 +2,26 @@
 // Date/Time Format (date_edtf): 1965, 1965-07, 1965~ (about), 1965? (maybe),
 // 196X (the 1960s), 1965-22 (summer).
 
-/** EDTF -> XMP date (YYYY, YYYY-MM, YYYY-MM-DD). Decades and seasons give the year or nothing. */
+/** EDTF -> XMP date (YYYY, YYYY-MM, YYYY-MM-DD, YYYY-MM-DDThh:mm:ss). Decades and seasons give the year or nothing. */
 export function edtfToXmpDate(edtf: string | null | undefined): string | null {
   if (!edtf) return null;
-  const m = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/.exec(edtf);
+  const m = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?(T\d{2}:\d{2}:\d{2})?/.exec(edtf);
   if (!m) return null;
-  const [, y, mo, d] = m;
+  const [, y, mo, d, time] = m;
   if (!mo || Number(mo) > 12) return y;
-  return d ? `${y}-${mo}-${d}` : `${y}-${mo}`;
+  return d ? `${y}-${mo}-${d}${time ?? ""}` : `${y}-${mo}`;
+}
+
+/** A time of day in text ("10:30", "10:30 am", "3:05:12 p.m.") as hh:mm:ss, or null. */
+function timeIn(t: string): string | null {
+  const m = /\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?(?![\w])/.exec(t);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const pm = m[4]?.startsWith("p"), am = m[4]?.startsWith("a");
+  if (h > 23 || Number(m[2]) > 59 || (m[4] && (h < 1 || h > 12))) return null;
+  if (pm && h < 12) h += 12;
+  if (am && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${m[2]}:${m[3] ?? "00"}`;
 }
 
 /** Does an EDTF date fall (at least partly) within the given years? */
@@ -34,6 +46,8 @@ export function toEdtf(text: string | null | undefined): string | null {
   if (!text) return null;
   const t = text.toLowerCase().trim();
   if (/^\d{4}(-\d{2}(-\d{2})?)?[~?%]?$/.test(t)) return t;
+  const iso = /^(\d{4}-\d{2}-\d{2})[t ](\d{2}:\d{2})(:\d{2})?/.exec(t);
+  if (iso) return `${iso[1]}T${iso[2]}${iso[3] ?? ":00"}`;
   const about = /\b(about|around|circa|ca\.?|approximately|roughly)\b|~/.test(t);
   const maybe = /\b(maybe|perhaps|possibly|probably|i think)\b|\?/.test(t);
   const qual = about && maybe ? "%" : about ? "~" : maybe ? "?" : "";
@@ -44,7 +58,8 @@ export function toEdtf(text: string | null | undefined): string | null {
   const month = MONTHS.findIndex((m) => new RegExp(`\\b${m}\\b|\\b${m.slice(0, 3)}\\b`).test(t));
   if (month >= 0) {
     const day = new RegExp(`\\b${MONTHS[month].slice(0, 3)}[a-z]*\\.? (\\d{1,2})(st|nd|rd|th)?\\b`).exec(t);
-    return `${year[1]}-${String(month + 1).padStart(2, "0")}${day ? `-${day[1].padStart(2, "0")}` : ""}${qual}`;
+    const time = day && !qual ? timeIn(t) : null;
+    return `${year[1]}-${String(month + 1).padStart(2, "0")}${day ? `-${day[1].padStart(2, "0")}` : ""}${time ? `T${time}` : ""}${qual}`;
   }
   const season = Object.keys(SEASONS).find((s) => t.includes(s));
   if (season) return `${year[1]}-${SEASONS[season]}${qual}`;

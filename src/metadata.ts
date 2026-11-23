@@ -209,8 +209,8 @@ export function readEmbedded(jpeg: Uint8Array): EmbeddedRead {
     if (s.marker !== 0xe1 || !startsWith(s.data, EXIF_HEADER)) continue;
     const exif = readExif(s.data.subarray(6));
     set("description", exif.ImageDescription?.value, "EXIF");
-    const dt = exif.DateTimeOriginal && /^(\d{4}):(\d{2}):(\d{2})/.exec(exif.DateTimeOriginal);
-    set("date", dt ? `${dt[1]}-${dt[2]}-${dt[3]}` : undefined, "EXIF");
+    const dt = exif.DateTimeOriginal && /^(\d{4}):(\d{2}):(\d{2})(?: (\d{2}):(\d{2}):(\d{2}))?/.exec(exif.DateTimeOriginal);
+    set("date", dt && dt[1] !== "0000" ? `${dt[1]}-${dt[2]}-${dt[3]}${dt[4] ? `T${dt[4]}:${dt[5]}:${dt[6]}` : ""}` : undefined, "EXIF");
     if (exif.GPS?.lat !== undefined && exif.GPS?.lon !== undefined && r.latitude === undefined) {
       r.latitude = exif.GPS.lat;
       r.longitude = exif.GPS.lon;
@@ -235,9 +235,25 @@ export interface MetadataConflict {
 const same = (a: unknown, b: unknown) => JSON.stringify(Array.isArray(a) ? [...a].sort() : a) === JSON.stringify(Array.isArray(b) ? [...b].sort() : b);
 
 /**
+ * Values that agree, though not character for character: the same date at a
+ * different precision ("2019-07-04" and "2019-07-04T10:30:00-05:00"), or the
+ * same spot on the map to within about a metre.
+ */
+function agree(field: keyof EmbeddedValues, e: unknown, o: unknown): boolean {
+  if (same(e, o)) return true;
+  if (field === "date") {
+    const a = String(e).replace(/(\.\d+)?([+-]\d{2}:?\d{2}|Z)$/, ""), b = String(o).replace(/(\.\d+)?([+-]\d{2}:?\d{2}|Z)$/, "");
+    return a.startsWith(b) || b.startsWith(a);
+  }
+  if (field === "latitude" || field === "longitude") return Math.abs(Number(e) - Number(o)) < 1e-5;
+  return false;
+}
+
+/**
  * Compare the photo's own values with what was already embedded. Missing
  * fields are filled from ours; fields that differ are returned as conflicts
- * for the person to decide (until then, the embedded value is kept).
+ * for the person to decide (until then, the embedded value is kept). Values
+ * that agree at different precision are not conflicts; the embedded one is kept.
  */
 export function planEmbedded(embedded: EmbeddedRead, ours: EmbeddedValues): { values: EmbeddedValues; conflicts: MetadataConflict[] } {
   const values: EmbeddedValues = {};
@@ -250,7 +266,7 @@ export function planEmbedded(embedded: EmbeddedRead, ours: EmbeddedValues): { va
       if (!empty(o)) (values as Row)[k] = o;
     } else {
       (values as Row)[k] = e;
-      if (!empty(o) && !same(e, o)) conflicts.push({ field: k, embedded: e, ours: o, source: embedded.sources[k] ?? "XMP" });
+      if (!empty(o) && !agree(k, e, o)) conflicts.push({ field: k, embedded: e, ours: o, source: embedded.sources[k] ?? "XMP" });
     }
   }
   return { values, conflicts };

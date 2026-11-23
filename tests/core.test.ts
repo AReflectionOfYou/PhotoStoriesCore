@@ -23,6 +23,11 @@ test("dates: EDTF from what people say", () => {
   assert.equal(toEdtf("when I was little"), null);
   assert.equal(edtfToXmpDate("1965-22"), "1965");
   assert.equal(edtfToXmpDate("1965-07-04"), "1965-07-04");
+  assert.equal(toEdtf("July 4, 2019, 10:30 AM"), "2019-07-04T10:30:00");
+  assert.equal(toEdtf("July 4, 2019 at 3:05 pm"), "2019-07-04T15:05:00");
+  assert.equal(toEdtf("2019-07-04T10:30:00"), "2019-07-04T10:30:00");
+  assert.equal(toEdtf("July 2019, 10:30"), "2019-07");
+  assert.equal(edtfToXmpDate("2019-07-04T10:30:00"), "2019-07-04T10:30:00");
   assert.ok(edtfInRange("196X", "1965", "1970"));
   assert.ok(!edtfInRange("1950", "1960", "1970"));
 });
